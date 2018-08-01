@@ -30,8 +30,7 @@ def _is_child_embedded_document(bases):
     """Same thing than _is_child, but for EmbeddedDocument...
     """
     return any(b for b in bases
-               if issubclass(b, EmbeddedDocumentImplementation) and
-               b is not EmbeddedDocumentImplementation)
+               if issubclass(b, EmbeddedDocumentImplementation) and not b.opts.abstract)
 
 
 def _collect_schema_attrs(nmspc):
