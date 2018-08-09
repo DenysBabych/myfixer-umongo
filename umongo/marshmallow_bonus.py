@@ -46,8 +46,7 @@ def schema_validator_check_unknown_fields(self, data, original_data):
     unknown_fields = {key for key, value in original_data.items()
                       if value is not missing and key not in loadable_fields}
     if unknown_fields:
-        raise ValidationError([_('Unknown field name {field}.').format(field=field)
-                               for field in unknown_fields])
+        raise ValidationError(_('Unknown field.'), unknown_fields)
 
 
 def schema_from_umongo_get_attribute(self, attr, obj, default):
