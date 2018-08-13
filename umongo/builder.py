@@ -242,7 +242,7 @@ class BaseBuilder:
 
         # _build_document_opts cannot determine the indexes given we need to
         # visit the document's fields which weren't defined at this time
-        opts.indexes = _collect_indexes(nmspc.get('Meta'), schema.fields, bases)
+        opts.indexes = _collect_indexes(nmspc.get('Meta'), schema_fields, bases)
 
         implementation = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation
