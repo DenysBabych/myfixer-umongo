@@ -71,7 +71,7 @@ class EmbeddedDocumentOpts:
                 .format(ClassName=self.__class__.__name__, self=self))
 
     def __init__(self, instance, template, abstract=False, allow_inheritance=True,
-                 is_child=False, strict=True, offspring=None):
+                 is_child=False, strict=False, offspring=None):
         self.instance = instance
         self.template = template
         self.abstract = abstract

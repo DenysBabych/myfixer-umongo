@@ -92,7 +92,7 @@ class DocumentOpts:
                 .format(ClassName=self.__class__.__name__, self=self))
 
     def __init__(self, instance, template, collection_name=None, abstract=False,
-                 allow_inheritance=None, indexes=None, is_child=True, strict=True,
+                 allow_inheritance=None, indexes=None, is_child=True, strict=False,
                  offspring=None):
         self.instance = instance
         self.template = template

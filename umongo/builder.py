@@ -106,7 +106,7 @@ def _build_document_opts(instance, template, name, nmspc, bases):
     kwargs['abstract'] = getattr(meta, 'abstract', False)
     kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', None)
     kwargs['is_child'] = _is_child(bases)
-    kwargs['strict'] = getattr(meta, 'strict', True)
+    kwargs['strict'] = getattr(meta, 'strict', False)
 
     # Handle option inheritance and integrity checks
     for base in bases:
@@ -143,7 +143,7 @@ def _build_embedded_document_opts(instance, template, name, nmspc, bases):
     kwargs['abstract'] = getattr(meta, 'abstract', False)
     kwargs['allow_inheritance'] = getattr(meta, 'allow_inheritance', True)
     kwargs['is_child'] = _is_child_embedded_document(bases)
-    kwargs['strict'] = getattr(meta, 'strict', True)
+    kwargs['strict'] = getattr(meta, 'strict', False)
 
     # Handle option inheritance and integrity checks
     for base in bases:

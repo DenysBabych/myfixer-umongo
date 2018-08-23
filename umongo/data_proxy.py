@@ -281,7 +281,7 @@ class BaseNonStrictDataProxy(BaseDataProxy):
         self._add_missing_fields()
 
 
-def data_proxy_factory(basename, schema, strict=True):
+def data_proxy_factory(basename, schema, strict=False):
     """
     Generate a DataProxy from the given schema.
 
