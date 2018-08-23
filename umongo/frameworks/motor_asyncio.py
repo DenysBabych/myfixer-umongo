@@ -44,7 +44,7 @@ class WrappedCursor(AsyncIOMotorCursor):
             return callback(result, error)
         return self.raw_cursor.each(wrapped_callback)
 
-    def to_list(self, length, callback=None):
+    def to_list(self, length=None, callback=None):
         raw_future = self.raw_cursor.to_list(length, callback=callback)
         cooked_future = asyncio.Future()
         builder = self.document_cls.build_from_mongo
