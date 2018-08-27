@@ -37,6 +37,7 @@ __all__ = (
     'IntField',
     'ConstantField',
     'StrictDateTimeField',
+    'TimestampField',
     'ObjectIdField',
     'ReferenceField',
     'GenericReferenceField',
@@ -240,6 +241,10 @@ class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
 
     def _deserialize_from_mongo(self, value):
         return self._set_tz_awareness(value)
+
+
+class TimestampField(BaseField, ma_bonus_fields.Timestamp):
+    pass
 
 
 class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):

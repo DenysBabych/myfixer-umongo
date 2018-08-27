@@ -1,3 +1,5 @@
+from calendar import timegm
+from datetime import datetime
 from dateutil.tz import tzutc
 
 from marshmallow import ValidationError, Schema as MaSchema, missing
@@ -13,6 +15,7 @@ __all__ = (
     'SchemaFromUmongo',
 
     'StrictDateTime',
+    'Timestamp',
     'ObjectId',
     'Reference',
     'GenericReference'
@@ -112,6 +115,26 @@ class StrictDateTime(ma_fields.DateTime):
                 date = date.astimezone(tzutc())
             date = date.replace(tzinfo=None)
         return date
+
+
+class Timestamp(ma_fields.Integer):
+    default_error_messages = {
+        'invalid': 'Timestamp must be integer.'
+    }
+
+    def __init__(self, auto_now=False, **kwargs):
+        super().__init__(**kwargs)
+        if auto_now:
+            self.missing = datetime.utcnow
+            self.dump_only = True
+
+    def _serialize(self, value, attr, obj):
+        if value is None:
+            return None
+        return timegm(value.utctimetuple())
+
+    def _deserialize(self, value, attr, data):
+        return datetime.utcfromtimestamp(value)
 
 
 class ObjectId(ma_fields.Field):
