@@ -297,6 +297,12 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         # already deserialized, in such a case do nothing.
         if isinstance(value, self.reference_cls):
             return value
+        elif isinstance(value, self.document_cls):
+            reference = self.reference_cls(self.document_cls, value.pk)
+            reference._document = value
+            return reference
+        elif not isinstance(value, ObjectId):
+            value = ObjectId(value)
         return self.reference_cls(self.document_cls, value)
 
     def as_marshmallow_field(self, params=None, mongo_world=False):
