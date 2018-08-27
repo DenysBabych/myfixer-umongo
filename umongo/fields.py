@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
@@ -165,10 +165,29 @@ class FloatField(BaseField, ma_fields.Float):
 
 class DateTimeField(BaseField, ma_fields.DateTime):
 
+    def __init__(self, format=None, auto_now=False, **kwargs):
+        super().__init__(format=format, **kwargs)
+        self.format = format
+        if auto_now:
+            self.missing = datetime.utcnow
+            self.dump_only = True
+
     def _deserialize(self, value, attr, data):
-        if isinstance(value, datetime):
-            return value
-        return super()._deserialize(value, attr, data)
+        if not isinstance(value, datetime):
+            if isinstance(value, date):
+                value = datetime.combine(value, datetime.min.time())
+            else:
+                value = super()._deserialize(value, attr, data)
+        return value
+
+    def _extract_marshmallow_field_params(self, mongo_world):
+        params = {field: getattr(self, field)
+                  for field in ('default', 'load_from', 'validate', 'required', 'allow_none',
+                                'load_only', 'dump_only', 'missing', 'error_messages', 'format')}
+        if mongo_world and self.attribute:
+            params['attribute'] = self.attribute
+        params.update(self.metadata)
+        return params
 
 
 class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):
