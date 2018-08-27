@@ -127,7 +127,7 @@ class ObjectId(ma_fields.Field):
     def _deserialize(self, value, attr, data):
         try:
             return bson.ObjectId(value)
-        except bson.errors.InvalidId:
+        except (bson.errors.InvalidId, TypeError):
             raise ValidationError(_('Invalid ObjectId.'))
 
 

@@ -224,7 +224,10 @@ class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
 
 
 class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):
-    pass
+    def _deserialize_from_mongo(self, value):
+        if not isinstance(value, ObjectId):
+            value = ObjectId(value)
+        return value
 
 
 class ReferenceField(BaseField, ma_bonus_fields.Reference):
