@@ -321,7 +321,13 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         # already deserialized, in such a case do nothing.
         if isinstance(value, self.reference_cls):
             return value
-        elif isinstance(value, self.document_cls):
+
+        if isinstance(value, list) and len(value) == 1:
+            value = value[0]
+        if isinstance(value, dict):
+            value = self.document_cls.build_from_mongo(value, use_cls=True)
+
+        if isinstance(value, self.document_cls):
             reference = self.reference_cls(self.document_cls, value.pk)
             reference._document = value
             return reference
