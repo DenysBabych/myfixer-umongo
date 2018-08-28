@@ -2,8 +2,11 @@ from calendar import timegm
 from datetime import datetime
 from dateutil.tz import tzutc
 
-from marshmallow import ValidationError, Schema as MaSchema, missing
+from marshmallow import ValidationError, Schema as MaSchema, missing, class_registry, utils
 from marshmallow import fields as ma_fields, validates_schema
+from marshmallow.base import SchemaABC
+from marshmallow.compat import basestring
+from marshmallow.fields import _RECURSIVE_NESTED
 import bson
 
 from .i18n import gettext as _
@@ -154,24 +157,106 @@ class ObjectId(ma_fields.Field):
             raise ValidationError(_('Invalid ObjectId.'))
 
 
-class Reference(ObjectId):
+class Reference(ma_fields.Field):
     """
     Marshmallow field for :class:`umongo.fields.ReferenceField`
     """
-
-    def __init__(self, *args, mongo_world=False, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, nested, exclude=tuple(), only=None, mongo_world=False, **kwargs):
+        self.nested = nested
+        self.only = only
+        self.exclude = exclude
+        self.many = kwargs.get('many', False)
         self.mongo_world = mongo_world
+        self.__schema = None  # Cached Schema instance
+        self.__updated_fields = False
+        super().__init__(**kwargs)
 
-    def _serialize(self, value, attr, obj):
-        if value is None:
+    @property
+    def schema(self):
+        """The nested Schema object.
+
+        .. versionchanged:: 1.0.0
+            Renamed from `serializer` to `schema`
+        """
+        if not self.__schema:
+            # Ensure that only parameter is a tuple
+            if isinstance(self.only, basestring):
+                only = (self.only,)
+            else:
+                only = self.only
+
+            # Inherit context from parent.
+            context = getattr(self.parent, 'context', {})
+            if isinstance(self.nested, SchemaABC):
+                self.__schema = self.nested
+                self.__schema.context.update(context)
+            elif isinstance(self.nested, type) and \
+                    issubclass(self.nested, SchemaABC):
+                self.__schema = self.nested(many=self.many,
+                        only=only, exclude=self.exclude, context=context,
+                        load_only=self._nested_normalized_option('load_only'),
+                        dump_only=self._nested_normalized_option('dump_only'))
+            elif isinstance(self.nested, basestring):
+                if self.nested == _RECURSIVE_NESTED:
+                    parent_class = self.parent.__class__
+                    self.__schema = parent_class(many=self.many, only=only,
+                            exclude=self.exclude, context=context,
+                            load_only=self._nested_normalized_option('load_only'),
+                            dump_only=self._nested_normalized_option('dump_only'))
+                else:
+                    schema_class = class_registry.get_class(self.nested)
+                    self.__schema = schema_class(many=self.many,
+                            only=only, exclude=self.exclude, context=context,
+                            load_only=self._nested_normalized_option('load_only'),
+                            dump_only=self._nested_normalized_option('dump_only'))
+            else:
+                raise ValueError('Nested fields must be passed a '
+                                 'Schema, not {0}.'.format(self.nested.__class__))
+            self.__schema.ordered = getattr(self.parent, 'ordered', False)
+        return self.__schema
+
+    def _nested_normalized_option(self, option_name):
+        nested_field = '%s.' % self.name
+        return [field.split(nested_field, 1)[1]
+                for field in getattr(self.root, option_name, set())
+                if field.startswith(nested_field)]
+
+    def _serialize(self, nested_obj, attr, obj):
+        # Load up the schema first. This allows a RegistryError to be raised
+        # if an invalid schema name was passed
+        if nested_obj is None:
             return None
-        if self.mongo_world:
+        elif self.mongo_world:
             # In mongo world, value is a regular ObjectId
-            return str(value)
+            return str(nested_obj)
+
+        if getattr(nested_obj, '_document', None):
+            nested_obj = nested_obj._document
         else:
-            # In OO world, value is a :class:`umongo.data_object.Reference`
-            return str(value.pk)
+            return str(nested_obj.pk)
+
+        schema = self.schema
+        if not self.__updated_fields:
+            schema._update_fields(obj=nested_obj, many=self.many)
+            self.__updated_fields = True
+        ret, errors = schema.dump(nested_obj, many=self.many,
+                update_fields=not self.__updated_fields)
+        if isinstance(self.only, basestring):  # self.only is a field name
+            only_field = self.schema.fields[self.only]
+            key = ''.join([self.schema.prefix or '', only_field.dump_to or self.only])
+            if self.many:
+                return utils.pluck(ret, key=key)
+            else:
+                return ret[key]
+        if errors:
+            raise ValidationError(errors, data=ret)
+        return ret
+
+    def _deserialize(self, value, attr, data):
+        try:
+            return bson.ObjectId(value)
+        except (bson.errors.InvalidId, TypeError):
+            raise ValidationError(_('Invalid ObjectId.'))
 
 
 class GenericReference(ma_fields.Field):

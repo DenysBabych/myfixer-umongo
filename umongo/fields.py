@@ -262,7 +262,7 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             another instance's :class:`umongo.embedded_document.DocumentImplementation` or
             the embedded document class name.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(None, *args, **kwargs)
         # TODO : check document_cls is implementation or string
         self.reference_cls = reference_cls
         # Can be the Template, Template's name or another Implementation
@@ -336,12 +336,16 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         return self.reference_cls(self.document_cls, value)
 
     def as_marshmallow_field(self, params=None, mongo_world=False):
-        # Overwrite default `as_marshmallow_field` to handle deserialization
-        # difference (`_id` vs `id`)
+        # Overwrite default `as_marshmallow_field` to handle nesting
         kwargs = self._extract_marshmallow_field_params(mongo_world)
         if params:
+            reference_params = params.pop('params')
             kwargs.update(params)
-        return ma_bonus_fields.Reference(mongo_world=mongo_world, **kwargs)
+        else:
+            reference_params = None
+        reference_ma_schema = self.document_cls.schema.as_marshmallow_schema(
+            params=reference_params, mongo_world=mongo_world)
+        return ma_bonus_fields.Reference(reference_ma_schema, mongo_world=mongo_world, **kwargs)
 
 
 class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
