@@ -256,7 +256,7 @@ class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):
 
 class ReferenceField(BaseField, ma_bonus_fields.Reference):
 
-    def __init__(self, document, *args, reference_cls=Reference, **kwargs):
+    def __init__(self, document, *args, reference_cls=Reference, generate_reference_scheme=True, **kwargs):
         """
         :param document: Can be a :class:`umongo.embedded_document.DocumentTemplate`,
             another instance's :class:`umongo.embedded_document.DocumentImplementation` or
@@ -265,6 +265,7 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
         super().__init__(None, *args, **kwargs)
         # TODO : check document_cls is implementation or string
         self.reference_cls = reference_cls
+        self.generate_reference_scheme = generate_reference_scheme
         # Can be the Template, Template's name or another Implementation
         if not isinstance(document, str):
             self.document = get_template(document)
@@ -343,9 +344,13 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             kwargs.update(params)
         else:
             reference_params = None
-        reference_ma_schema = self.document_cls.schema.as_marshmallow_schema(
-            params=reference_params, mongo_world=mongo_world)
-        return ma_bonus_fields.Reference(reference_ma_schema, mongo_world=mongo_world, **kwargs)
+        if self.generate_reference_scheme:
+            reference_ma_schema = self.document_cls.schema.as_marshmallow_schema(
+                params=reference_params, mongo_world=mongo_world)
+        else:
+            reference_ma_schema = None
+        schema = ma_bonus_fields.Reference(reference_ma_schema, mongo_world=mongo_world, **kwargs)
+        return schema
 
 
 class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
