@@ -150,8 +150,8 @@ class BaseDataProxy:
     def set(self, name, value, to_raise=KeyError):
         name, field = self._get_field(name, to_raise)
         if value is None and not getattr(field, 'allow_none', False):
-            raise ValidationError(field.error_messages['null'])
-        if value is not None:
+            value = missing
+        elif value is not None:
             value = field._deserialize(value, name, None)
             field._validate(value)
         self._data[name] = value
