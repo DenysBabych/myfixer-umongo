@@ -44,8 +44,8 @@ class WrappedCursor(AsyncIOMotorCursor):
             return callback(result, error)
         return self.raw_cursor.each(wrapped_callback)
 
-    def to_list(self, length=None, callback=None):
-        raw_future = self.raw_cursor.to_list(length, callback=callback)
+    def to_list(self, length=None):
+        raw_future = self.raw_cursor.to_list(length)
         cooked_future = asyncio.Future()
         builder = self.document_cls.build_from_mongo
 
@@ -54,6 +54,30 @@ class WrappedCursor(AsyncIOMotorCursor):
 
         raw_future.add_done_callback(on_raw_done)
         return cooked_future
+
+    def count(self, **kwargs):
+        cursor = self.delegate
+        count_cond = {'filter': cursor._Cursor__spec}
+
+        session = kwargs.get('session', cursor.session)
+        if session:
+            count_cond['session'] = session
+        skip = kwargs.get('skip', cursor._Cursor__skip)
+        if skip:
+            count_cond['skip'] = skip
+        limit = kwargs.get('limit', cursor._Cursor__limit)
+        if limit:
+            count_cond['limit'] = limit
+        max_time_ms = kwargs.get('max_time_ms', cursor._Cursor__max_time_ms)
+        if max_time_ms:
+            count_cond['maxTimeMS'] = max_time_ms
+        collation = kwargs.get('collation', cursor._Cursor__collation)
+        if collation:
+            count_cond['collation'] = collation
+        hint = kwargs.get('hint', cursor._Cursor__hint)
+        if hint:
+            count_cond['hint'] = hint
+        return self.collection.count_documents(**count_cond)
 
 
 class MotorAsyncIODocument(DocumentImplementation):
@@ -245,6 +269,18 @@ class MotorAsyncIODocument(DocumentImplementation):
         """
         filter = cook_find_filter(cls, filter)
         return WrappedCursor(cls, cls.collection.find(*args, filter=filter, **kwargs))
+
+    @classmethod
+    @asyncio.coroutine
+    def count_documents(cls, filter=None, **kwargs):
+        """
+        Count the number of documents in this collection.
+        """
+        if filter is None:
+            filter = {}
+        filter = cook_find_filter(cls, filter)
+        ret = yield from cls.collection.count_documents(filter, **kwargs)
+        return ret
 
     @classmethod
     @asyncio.coroutine
