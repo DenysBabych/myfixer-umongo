@@ -87,6 +87,8 @@ class BaseField(ma_fields.Field):
         'unique': N_('Field value must be unique.'),
         'unique_compound': N_('Values of fields {fields} must be unique together.')
     }
+    marshmallow_field_params = ('default', 'load_from', 'validate', 'required',  'allow_none',
+                                'load_only', 'dump_only', 'missing', 'error_messages')
 
     def __init__(self, *args, io_validate=None, unique=False, instance=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -180,9 +182,7 @@ class BaseField(ma_fields.Field):
 
     def _extract_marshmallow_field_params(self, mongo_world):
         params = {field: getattr(self, field)
-                  for field in ('default', 'load_from', 'validate',
-                                'required', 'allow_none', 'load_only',
-                                'dump_only', 'missing', 'error_messages')}
+                  for field in self.marshmallow_field_params}
         if mongo_world and self.attribute:
             params['attribute'] = self.attribute
         params.update(self.metadata)
