@@ -2,7 +2,7 @@ from datetime import datetime, date
 
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
-from bson import DBRef, ObjectId
+from bson import DBRef, ObjectId, decimal128
 
 # from .registerer import retrieve_document
 from .exceptions import NotRegisteredDocumentError
@@ -148,8 +148,20 @@ class IntegerField(BaseField, ma_fields.Integer):
     pass
 
 
-class DecimalField(BaseField, ma_fields.Decimal):
-    pass
+class DecimalField(BaseField, ma_bonus_fields.Decimal):
+    marshmallow_field_params = ('default', 'load_from', 'validate', 'required',  'allow_none',
+                                'load_only', 'dump_only', 'missing', 'error_messages',
+                                'places', 'rounding', 'allow_nan', 'as_string')
+
+    def _serialize_to_mongo(self, value):
+        if not isinstance(value, decimal128.Decimal128):
+            value = decimal128.Decimal128(value)
+        return value
+
+    def _deserialize_from_mongo(self, value):
+        if isinstance(value, decimal128.Decimal128):
+            value = value.to_decimal()
+        return value
 
 
 class BooleanField(BaseField, ma_fields.Boolean):
@@ -165,6 +177,8 @@ class FloatField(BaseField, ma_fields.Float):
 
 
 class DateTimeField(BaseField, ma_fields.DateTime):
+    marshmallow_field_params = ('default', 'load_from', 'validate', 'required', 'allow_none',
+                                'load_only', 'dump_only', 'missing', 'error_messages', 'format')
 
     def __init__(self, format=None, auto_now=False, **kwargs):
         super().__init__(format=format, **kwargs)
@@ -180,15 +194,6 @@ class DateTimeField(BaseField, ma_fields.DateTime):
             else:
                 value = super()._deserialize(value, attr, data)
         return value
-
-    def _extract_marshmallow_field_params(self, mongo_world):
-        params = {field: getattr(self, field)
-                  for field in ('default', 'load_from', 'validate', 'required', 'allow_none',
-                                'load_only', 'dump_only', 'missing', 'error_messages', 'format')}
-        if mongo_world and self.attribute:
-            params['attribute'] = self.attribute
-        params.update(self.metadata)
-        return params
 
 
 class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):

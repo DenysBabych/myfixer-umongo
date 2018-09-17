@@ -1,3 +1,4 @@
+import decimal
 from calendar import timegm
 from datetime import datetime
 from dateutil.tz import tzutc
@@ -121,6 +122,9 @@ class StrictDateTime(ma_fields.DateTime):
 
 
 class Timestamp(ma_fields.Integer):
+    """
+    Marshmallow Timestamp field
+    """
     default_error_messages = {
         'invalid': 'Timestamp must be integer.'
     }
@@ -138,6 +142,21 @@ class Timestamp(ma_fields.Integer):
 
     def _deserialize(self, value, attr, data):
         return datetime.utcfromtimestamp(value)
+
+
+class Decimal(ma_fields.Decimal):
+    """
+    Marshmallow field for :class:`decimal.Decimal`
+    """
+
+    def __init__(self, places=None, rounding=None, allow_nan=False, as_string=False, **kwargs):
+        if places is not None and not isinstance(places, decimal.Decimal):
+            places = decimal.Decimal((0, (1,), -places))
+        self.places = places
+        self.rounding = rounding
+        self.allow_nan = allow_nan
+        self.as_string = as_string
+        super(ma_fields.Number, self).__init__(as_string=as_string, **kwargs)
 
 
 class ObjectId(ma_fields.Field):
@@ -161,6 +180,7 @@ class Reference(ma_fields.Field):
     """
     Marshmallow field for :class:`umongo.fields.ReferenceField`
     """
+
     def __init__(self, nested, exclude=tuple(), only=None, mongo_world=False, **kwargs):
         self.nested = nested
         self.only = only
