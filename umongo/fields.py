@@ -172,11 +172,13 @@ class FormattedStringField(BaseField, ma_fields.FormattedString):
     pass
 
 
-class FloatField(BaseField, ma_fields.Float):
-    pass
+class FloatField(BaseField, ma_bonus_fields.Float):
+    marshmallow_field_params = ('default', 'load_from', 'validate', 'required',  'allow_none',
+                                'load_only', 'dump_only', 'missing', 'error_messages',
+                                'places', 'as_string')
 
 
-class DateTimeField(BaseField, ma_fields.DateTime):
+class DateTimeField(BaseField, ma_bonus_fields.DateTime):
     marshmallow_field_params = ('default', 'load_from', 'validate', 'required', 'allow_none',
                                 'load_only', 'dump_only', 'missing', 'error_messages', 'format')
 
@@ -186,14 +188,6 @@ class DateTimeField(BaseField, ma_fields.DateTime):
         if auto_now:
             self.missing = datetime.utcnow
             self.dump_only = True
-
-    def _deserialize(self, value, attr, data):
-        if not isinstance(value, datetime):
-            if isinstance(value, date):
-                value = datetime.combine(value, datetime.min.time())
-            else:
-                value = super()._deserialize(value, attr, data)
-        return value
 
 
 class LocalDateTimeField(BaseField, ma_fields.LocalDateTime):

@@ -1,6 +1,6 @@
 import decimal
 from calendar import timegm
-from datetime import datetime
+from datetime import datetime, date
 from dateutil.tz import tzutc
 
 from marshmallow import ValidationError, Schema as MaSchema, missing, class_registry, utils
@@ -94,6 +94,20 @@ class SchemaFromUmongo(MaSchema):
 
 # Bonus: new fields !
 
+class DateTime(ma_fields.DateTime):
+    """
+    Marshmallow DateTime field
+    """
+
+    def _deserialize(self, value, attr, data):
+        if not isinstance(value, datetime):
+            if isinstance(value, date):
+                value = datetime.combine(value, datetime.min.time())
+            else:
+                value = super()._deserialize(value, attr, data)
+        return value
+
+
 class StrictDateTime(ma_fields.DateTime):
     """
     Marshmallow DateTime field with extra parameter to control
@@ -157,6 +171,26 @@ class Decimal(ma_fields.Decimal):
         self.allow_nan = allow_nan
         self.as_string = as_string
         super(ma_fields.Number, self).__init__(as_string=as_string, **kwargs)
+
+
+class Float(ma_fields.Float):
+    """
+    Marshmallow float field
+    """
+
+    def __init__(self, places=None, as_string=False, **kwargs):
+        self.places = places
+        self.as_string = as_string
+        super().__init__(as_string=as_string, **kwargs)
+
+    # override Number
+    def _format_num(self, value):
+        if value is None:
+            return None
+
+        if self.places is not None:
+            value = round(value, self.places)
+        return value
 
 
 class ObjectId(ma_fields.Field):
