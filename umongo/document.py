@@ -282,7 +282,13 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
 
     def __getattr__(self, name):
         value = self._data.get(name, to_raise=AttributeError)
-        return value if value is not missing else None
+        if value is missing:
+            name, field = self._data._get_field(name, to_raise=AttributeError)
+            if hasattr(field, 'embedded_document_cls'):
+                value = self._data._data[name] = field.embedded_document_cls(parent_instance=self)
+            else:
+                value = None
+        return value
 
     def __delattr__(self, name):
         if not self.__real_attributes:

@@ -484,7 +484,8 @@ class EmbeddedField(BaseField, ma_fields.Nested):
             return self._deserialize_from_mongo(data)
 
     def _serialize_to_mongo(self, obj):
-        return obj.to_mongo()
+        value = obj.to_mongo()
+        return value if value or self.allow_none else missing
 
     def _deserialize_from_mongo(self, value, parent_instance=None, **kwargs):
         # When this method is called from `_deserialize`, `value` can be
