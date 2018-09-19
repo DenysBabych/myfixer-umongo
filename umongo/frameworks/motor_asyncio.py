@@ -147,6 +147,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         """
         try:
             if self.is_created:
+                ret = None
                 if self.is_modified():
                     query = conditions or {}
                     query['_id'] = self.pk
@@ -158,12 +159,12 @@ class MotorAsyncIODocument(DocumentImplementation):
                     self.required_validate()
                     yield from self.io_validate(validate_all=io_validate_all)
                     payload = self._data.to_mongo(update=True)
-                    ret = yield from self.collection.update_one(query, payload)
-                    if ret.matched_count != 1:
-                        raise UpdateError(ret)
-                    yield from self.__coroutined_post_update(ret)
-                else:
-                    ret = None
+                    if payload:
+                        ret = yield from self.collection.update_one(query, payload)
+                        if ret.matched_count != 1:
+                            raise UpdateError(ret)
+                        yield from self.__coroutined_post_update(ret)
+
             elif conditions:
                 raise RuntimeError('Document must already exist in database to use `conditions`.')
             else:
