@@ -4,6 +4,7 @@ from pymongo.errors import DuplicateKeyError
 
 from ..builder import BaseBuilder
 from ..document import DocumentImplementation
+from ..embedded_document import EmbeddedDocumentImplementation
 from ..data_proxy import missing
 from ..data_objects import Reference
 from ..exceptions import NotCreatedError, UpdateError, ValidationError, DeleteError
@@ -127,7 +128,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
         self._data = self.DataProxy()
-        self._data.from_mongo(ret)
+        self._data.from_mongo(ret, parent_instance=self)
 
     @asyncio.coroutine
     def commit(self, io_validate_all=False, conditions=None):
@@ -294,6 +295,35 @@ class MotorAsyncIODocument(DocumentImplementation):
             yield from cls.collection.create_index(keys, **kwargs)
 
 
+class MotorAsyncIOEmbeddedDocument(EmbeddedDocumentImplementation):
+
+    __slots__ = ()
+
+    opts = EmbeddedDocumentImplementation.opts
+
+    @asyncio.coroutine
+    def reload(self):
+        yield from self.parent_instance.reload()
+
+    @asyncio.coroutine
+    def commit(self, io_validate_all=False, conditions=None):
+        ret = yield from self.parent_instance.commit(io_validate_all=io_validate_all, conditions=conditions)
+        return ret
+
+    @asyncio.coroutine
+    def delete(self, conditions=None):
+        ret = yield from self.parent_instance.delete(conditions=conditions)
+        return ret
+
+    @asyncio.coroutine
+    def remove(self, conditions=None):
+        ret = yield from self.parent_instance.remove(conditions=conditions)
+        return ret
+
+    def io_validate(self, validate_all=False):
+        return self.parent_instance.io_validate(validate_all=validate_all)
+
+
 # Run multiple validators and collect all errors in one
 @asyncio.coroutine
 def _run_validators(validators, field, value):
@@ -386,6 +416,7 @@ class MotorAsyncIOReference(Reference):
 class MotorAsyncIOBuilder(BaseBuilder):
 
     BASE_DOCUMENT_CLS = MotorAsyncIODocument
+    BASE_EMBEDDED_DOCUMENT_CLS = MotorAsyncIOEmbeddedDocument
 
     @staticmethod
     def is_compatible_with(db):

@@ -91,12 +91,14 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
 
     __slots__ = ('_callback', '_data', '_modified')
     __real_attributes = None
+    parent_instance = None
     opts = EmbeddedDocumentOpts(None, EmbeddedDocumentTemplate, abstract=True)
 
-    def __init__(self, **kwargs):
+    def __init__(self, parent_instance=None, **kwargs):
         super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract EmbeddedDocument")
+        self.parent_instance = parent_instance
         self._data = self.DataProxy(kwargs)
 
     def __repr__(self):
@@ -120,23 +122,24 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         self._data.required_validate()
 
     @classmethod
-    def build_from_mongo(cls, data, use_cls=True):
+    def build_from_mongo(cls, data, parent_instance=None, use_cls=True):
         """
         Create an embedded document instance from MongoDB data
 
         :param data: data as retrieved from MongoDB
+        :param parent_instance: parent document instance
         :param use_cls: if the data contains a ``_cls`` field,
             use it determine the EmbeddedDocument class to instanciate
         """
         # If a _cls is specified, we have to use this document class
         if use_cls and '_cls' in data:
             cls = cls.opts.instance.retrieve_embedded_document(data['_cls'])
-        doc = cls()
+        doc = cls(parent_instance=parent_instance)
         doc.from_mongo(data)
         return doc
 
     def from_mongo(self, data):
-        self._data.from_mongo(data)
+        self._data.from_mongo(data, parent_instance=self)
 
     def to_mongo(self, update=False):
         return self._data.to_mongo(update=update)

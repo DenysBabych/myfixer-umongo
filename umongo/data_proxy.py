@@ -61,7 +61,7 @@ class BaseDataProxy:
             mongo_data['$unset'] = {k: "" for k in unset_data}
         return mongo_data or None
 
-    def from_mongo(self, data, partial=False):
+    def from_mongo(self, data, parent_instance=None, partial=False):
         self._data = {}
         for k, v in data.items():
             try:
@@ -69,8 +69,8 @@ class BaseDataProxy:
             except KeyError:
                 raise UnknownFieldInDBError(
                     _('{cls}: unknown "{key}" field found in DB.'
-                    .format(key=k, cls=self.__class__.__name__)))
-            self._data[k] = field.deserialize_from_mongo(v)
+                      .format(key=k, cls=self.__class__.__name__)))
+            self._data[k] = field.deserialize_from_mongo(v, parent_instance=parent_instance)
         if partial:
             self._collect_partial_fields(data.keys(), as_mongo_fields=True)
         else:
@@ -264,7 +264,7 @@ class BaseNonStrictDataProxy(BaseDataProxy):
         mongo_data.update(self._additional_data)
         return mongo_data
 
-    def from_mongo(self, data, partial=False):
+    def from_mongo(self, data, parent_instance=None, partial=False):
         self._data = {}
         for k, v in data.items():
             try:
@@ -272,7 +272,7 @@ class BaseNonStrictDataProxy(BaseDataProxy):
             except KeyError:
                 self._additional_data[k] = v
             else:
-                self._data[k] = field.deserialize_from_mongo(v)
+                self._data[k] = field.deserialize_from_mongo(v, parent_instance=parent_instance)
         if partial:
             self._collect_partial_fields(data.keys(), as_mongo_fields=True)
         else:

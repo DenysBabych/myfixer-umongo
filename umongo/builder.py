@@ -170,13 +170,15 @@ class BaseBuilder:
     """
 
     BASE_DOCUMENT_CLS = None
+    BASE_EMBEDDED_DOCUMENT_CLS = EmbeddedDocumentImplementation
 
     def __init__(self, instance):
         assert self.BASE_DOCUMENT_CLS
+        assert self.BASE_EMBEDDED_DOCUMENT_CLS
         self.instance = instance
         self._templates_lookup = {
             DocumentTemplate: self.BASE_DOCUMENT_CLS,
-            EmbeddedDocumentTemplate: EmbeddedDocumentImplementation
+            EmbeddedDocumentTemplate: self.BASE_EMBEDDED_DOCUMENT_CLS
         }
 
     def _convert_bases(self, bases):

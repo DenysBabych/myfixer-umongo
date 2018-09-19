@@ -212,7 +212,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         :param data: data as retrieved from MongoDB
         """
         # TODO: handle partial
-        self._data.from_mongo(data, partial=partial)
+        self._data.from_mongo(data, parent_instance=self, partial=partial)
         self.is_created = True
 
     def to_mongo(self, update=False):

@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime
 
 from marshmallow import ValidationError, missing
 from marshmallow import fields as ma_fields
@@ -68,7 +68,7 @@ class DictField(BaseField, ma_fields.Dict):
             return missing
         return dict(obj)
 
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, **kwargs):
         if value:
             return Dict(value)
         else:
@@ -95,9 +95,9 @@ class ListField(BaseField, ma_fields.List):
             return missing
         return [self.container.serialize_to_mongo(each) for each in obj]
 
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, parent_instance=None, **kwargs):
         if value:
-            return List(self.container, [self.container.deserialize_from_mongo(each)
+            return List(self.container, [self.container.deserialize_from_mongo(each, parent_instance=parent_instance)
                                          for each in value])
         else:
             return List(self.container)
@@ -158,7 +158,7 @@ class DecimalField(BaseField, ma_bonus_fields.Decimal):
             value = decimal128.Decimal128(value)
         return value
 
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, **kwargs):
         if isinstance(value, decimal128.Decimal128):
             value = value.to_decimal()
         return value
@@ -238,7 +238,7 @@ class StrictDateTimeField(BaseField, ma_bonus_fields.StrictDateTime):
             return self._set_tz_awareness(value)
         return super()._deserialize(value, attr, data)
 
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, **kwargs):
         return self._set_tz_awareness(value)
 
 
@@ -247,7 +247,7 @@ class TimestampField(BaseField, ma_bonus_fields.Timestamp):
 
 
 class ObjectIdField(BaseField, ma_bonus_fields.ObjectId):
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, **kwargs):
         if not isinstance(value, ObjectId):
             value = ObjectId(value)
         return value
@@ -316,7 +316,7 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
     def _serialize_to_mongo(self, obj):
         return obj.pk
 
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, **kwargs):
         # When this method is called from `_deserialize`, `value` can be
         # already deserialized, in such a case do nothing.
         if isinstance(value, self.reference_cls):
@@ -395,7 +395,7 @@ class GenericReferenceField(BaseField, ma_bonus_fields.GenericReference):
     def _serialize_to_mongo(self, obj):
         return {'_id': obj.pk, '_cls': obj.document_cls.__name__}
 
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, **kwargs):
         # When this method is called from `_deserialize`, `value` can be
         # already deserialized, in such a case do nothing.
         if isinstance(value, self.reference_cls):
@@ -486,12 +486,12 @@ class EmbeddedField(BaseField, ma_fields.Nested):
     def _serialize_to_mongo(self, obj):
         return obj.to_mongo()
 
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, parent_instance=None, **kwargs):
         # When this method is called from `_deserialize`, `value` can be
         # already deserialized, in such a case do nothing.
         if isinstance(value, self.embedded_document_cls):
             return value
-        return self.embedded_document_cls.build_from_mongo(value)
+        return self.embedded_document_cls.build_from_mongo(value, parent_instance=parent_instance)
 
     def _validate_missing(self, value):
         # Overload default to handle recursive check

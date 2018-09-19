@@ -138,13 +138,13 @@ class BaseField(ma_fields.Field):
     # def serialize_to_mongo_update(self, path, obj):
     #     return self._serialize_to_mongo(attr, obj=obj, update=update)
 
-    def deserialize_from_mongo(self, value):
+    def deserialize_from_mongo(self, value, parent_instance=None):
         if value is None:
             if getattr(self, 'allow_none', False) is True:
                 return None
             else:
                 return missing
-        return self._deserialize_from_mongo(value)
+        return self._deserialize_from_mongo(value, parent_instance=parent_instance)
 
     def _serialize_to_mongo(self, obj):
         return obj
@@ -157,7 +157,7 @@ class BaseField(ma_fields.Field):
     #     else:
     #         return obj
 
-    def _deserialize_from_mongo(self, value):
+    def _deserialize_from_mongo(self, value, **kwargs):
         return value
 
     # # Hat tip to django-rest-framework.
