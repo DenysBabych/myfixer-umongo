@@ -188,6 +188,7 @@ class Float(ma_fields.Float):
         if value is None:
             return None
 
+        value = self.num_type(value)
         if self.places is not None:
             value = round(value, self.places)
         return value

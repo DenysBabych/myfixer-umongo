@@ -190,7 +190,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         return DBRef(collection=self.collection.name, id=self.pk)
 
     @classmethod
-    def build_from_mongo(cls, data, partial=False, use_cls=False):
+    def build_from_mongo(cls, data, partial=False, use_cls=False, **kwargs):
         """
         Create a document instance from MongoDB data
 
