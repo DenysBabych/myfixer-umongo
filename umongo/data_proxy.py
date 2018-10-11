@@ -280,6 +280,10 @@ class BaseNonStrictDataProxy(BaseDataProxy):
         self.clear_modified()
         self._add_missing_fields()
 
+    @property
+    def additional_data(self):
+        return self._additional_data
+
 
 def data_proxy_factory(basename, schema, strict=False):
     """
