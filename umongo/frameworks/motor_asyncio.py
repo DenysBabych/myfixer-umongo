@@ -247,8 +247,8 @@ class MotorAsyncIODocument(DocumentImplementation):
         if validate_all:
             return _io_validate_data_proxy(self.schema, self._data)
         else:
-            return _io_validate_data_proxy(
-                self.schema, self._data, partial=self._data.get_modified_fields())
+            return _io_validate_data_proxy(self.schema, self._data,
+                                           partial=self._data.get_modified_fields_by_mongo_name())
 
     @classmethod
     @asyncio.coroutine
@@ -345,9 +345,10 @@ def _io_validate_data_proxy(schema, data_proxy, partial=None):
     tasks = []
     tasks_field_name = []
     for name, field in schema.fields.items():
-        if partial and name not in partial:
-            continue
         data_name = field.attribute or name
+        if partial and data_name not in partial:
+            continue
+
         value = data_proxy._data[data_name]
         if value is missing:
             continue
@@ -393,7 +394,8 @@ def _list_io_validate(field, value):
 
 @asyncio.coroutine
 def _embedded_document_io_validate(field, value):
-    yield from _io_validate_data_proxy(value.schema, value._data)
+    yield from _io_validate_data_proxy(value.schema, value._data,
+                                       partial=value._data.get_modified_fields_by_mongo_name())
 
 
 class MotorAsyncIOReference(Reference):

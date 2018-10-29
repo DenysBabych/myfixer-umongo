@@ -153,10 +153,10 @@ class DecimalField(BaseField, ma_bonus_fields.Decimal):
                                 'load_only', 'dump_only', 'missing', 'error_messages',
                                 'places', 'rounding', 'allow_nan', 'as_string')
 
-    def _serialize_to_mongo(self, value):
-        if not isinstance(value, decimal128.Decimal128):
-            value = decimal128.Decimal128(value)
-        return value
+    def _serialize_to_mongo(self, obj):
+        if not isinstance(obj, decimal128.Decimal128):
+            obj = decimal128.Decimal128(obj)
+        return obj
 
     def _deserialize_from_mongo(self, value, **kwargs):
         if isinstance(value, decimal128.Decimal128):
