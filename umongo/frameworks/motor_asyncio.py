@@ -127,7 +127,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         ret = yield from self.collection.find_one(self.pk)
         if ret is None:
             raise NotCreatedError("Document doesn't exists in database")
-        self._data = self.DataProxy()
+        self._data = self.DataProxy(load_data=False)
         self._data.from_mongo(ret, parent_instance=self)
 
     @asyncio.coroutine

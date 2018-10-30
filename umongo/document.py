@@ -134,13 +134,13 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
     __real_attributes = None
     opts = DocumentOpts(None, DocumentTemplate, abstract=True)
 
-    def __init__(self, **kwargs):
+    def __init__(self, *, load_data=True, **kwargs):
         super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract Document")
         self.is_created = False
         "Return True if the document has been commited to database"  # is_created's docstring
-        self._data = self.DataProxy(kwargs if kwargs else None)
+        self._data = self.DataProxy(kwargs, load_data=load_data)
 
     def __repr__(self):
         return '<object Document %s.%s(%s)>' % (
@@ -201,7 +201,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         # If a _cls is specified, we have to use this document class
         if use_cls and '_cls' in data:
             cls = cls.opts.instance.retrieve_document(data['_cls'])
-        doc = cls()
+        doc = cls(load_data=False)
         doc.from_mongo(data, partial=partial)
         return doc
 

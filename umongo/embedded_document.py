@@ -94,12 +94,12 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     parent_instance = None
     opts = EmbeddedDocumentOpts(None, EmbeddedDocumentTemplate, abstract=True)
 
-    def __init__(self, parent_instance=None, **kwargs):
+    def __init__(self, *, parent_instance=None, load_data=True, **kwargs):
         super().__init__()
         if self.opts.abstract:
             raise AbstractDocumentError("Cannot instantiate an abstract EmbeddedDocument")
         self.parent_instance = parent_instance
-        self._data = self.DataProxy(kwargs)
+        self._data = self.DataProxy(kwargs, load_data=load_data)
 
     def __repr__(self):
         return '<object EmbeddedDocument %s.%s(%s)>' % (
@@ -134,7 +134,7 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
         # If a _cls is specified, we have to use this document class
         if use_cls and '_cls' in data:
             cls = cls.opts.instance.retrieve_embedded_document(data['_cls'])
-        doc = cls(parent_instance=parent_instance)
+        doc = cls(parent_instance=parent_instance, load_data=False)
         doc.from_mongo(data)
         return doc
 

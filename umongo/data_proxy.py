@@ -15,11 +15,12 @@ class BaseDataProxy:
     _fields = None
     _fields_from_mongo_key = None
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, load_data=True):
         self.not_loaded_fields = set()
         # Inside data proxy, data are stored in mongo world representation
         self._modified_data = set()
-        self.load(data or {})
+        if load_data:
+            self.load(data or {})
 
     @property
     def partial(self):
@@ -255,9 +256,9 @@ class BaseNonStrictDataProxy(BaseDataProxy):
 
     __slots__ = ('_additional_data', )
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, load_data=True):
         self._additional_data = {}
-        super().__init__(data=data)
+        super().__init__(data=data, load_data=load_data)
 
     def _to_mongo(self):
         mongo_data = super()._to_mongo()
