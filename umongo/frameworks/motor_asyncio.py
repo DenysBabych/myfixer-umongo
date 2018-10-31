@@ -1,6 +1,6 @@
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorCursor
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import BulkWriteError, DuplicateKeyError
 
 from ..builder import BaseBuilder
 from ..document import DocumentImplementation
@@ -197,11 +197,11 @@ class MotorAsyncIODocument(DocumentImplementation):
         self._data.clear_modified()
         return ret
 
-    def delete(self, conditions=None):
+    def delete(self, *args, **kwargs):
         """
         Alias of :meth:`remove` to enforce default api.
         """
-        return self.remove(conditions=conditions)
+        return self.remove(*args, **kwargs)
 
     async def remove(self, conditions=None):
         """
@@ -231,6 +231,66 @@ class MotorAsyncIODocument(DocumentImplementation):
             raise DeleteError(ret)
         self.is_created = False
         await self.__coroutined_post_delete(ret)
+        return ret
+
+    @classmethod
+    async def delete_many(cls, filter, *args, **kwargs):
+        """
+        Bulk remove the documents from database.
+        """
+        filter = cook_find_filter(cls, filter)
+        ret = await cls.collection.delete_many(*args, filter=filter, **kwargs)
+        return ret
+
+    @classmethod
+    async def insert_many(cls, documents, io_validate_all=False, **kwargs):
+        """
+        Bulk insert the documents.
+        """
+        try:
+            payloads = []
+            async_validations = []
+            for obj in documents:
+                obj.required_validate()
+                async_validations.append(obj.io_validate(validate_all=io_validate_all))
+                payloads.append(obj._data.to_mongo(update=False))
+            await asyncio.gather(*async_validations)
+
+            ret = await cls.collection.insert_many(documents=payloads, **kwargs)
+        except BulkWriteError as exc:
+            raise ValidationError(
+                "Bulk creating error. Inserted {count} document(s)".format(count=exc.details.get('nInserted', 0))
+            )
+        return ret
+
+    @classmethod
+    async def update_many(cls, filter, update, **kwargs):
+        """
+        Bulk update the documents.
+        """
+        filter = cook_find_filter(cls, filter)
+        try:
+            ret = await cls.collection.update_many(filter=filter, update=update, **kwargs)
+        except BulkWriteError as exc:
+            raise ValidationError("Bulk updating error.")
+        except DuplicateKeyError as exc:
+            # Need to dig into error message to find faulting index
+            errmsg = exc.details['errmsg']
+            for index in cls.opts.indexes:
+                if '.$%s' % index.document['name'] in errmsg or ' %s ' % index.document['name'] in errmsg:
+                    keys = index.document['key'].keys()
+                    if len(keys) == 1:
+                        key = tuple(keys)[0]
+                        msg = cls.schema.fields[key].error_messages['unique']
+                        raise ValidationError({key: msg})
+                    else:
+                        fields = cls.schema.fields
+                        # Compound index (sort value to make testing easier)
+                        keys = sorted(keys)
+                        raise ValidationError({k: fields[k].error_messages['unique_compound'].format(fields=keys)
+                                               for k in keys})
+            # Unknown index, cannot wrap the error so just reraise it
+            raise
         return ret
 
     def io_validate(self, validate_all=False):
