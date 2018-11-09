@@ -241,7 +241,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Bulk remove the documents from database.
         """
         filter = cook_find_filter(cls, filter)
-        ret = await cls.collection.delete_many(*args, filter=filter, **kwargs)
+        ret = await cls.collection.delete_many(filter, *args, **kwargs)
         return ret
 
     @classmethod
@@ -272,7 +272,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         """
         filter = cook_find_filter(cls, filter)
         try:
-            ret = await cls.collection.update_many(filter=filter, update=update, **kwargs)
+            ret = await cls.collection.update_many(filter, update=update, **kwargs)
         except BulkWriteError as exc:
             raise ValidationError("Bulk updating error.")
         except DuplicateKeyError as exc:
@@ -314,7 +314,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Find a single document in database.
         """
         filter = cook_find_filter(cls, filter)
-        ret = await cls.collection.find_one(*args, filter=filter, **kwargs)
+        ret = await cls.collection.find_one(filter, *args, **kwargs)
         if not collection_cursor and ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
@@ -327,7 +327,7 @@ class MotorAsyncIODocument(DocumentImplementation):
         Returns a cursor that provide Documents.
         """
         filter = cook_find_filter(cls, filter)
-        return WrappedCursor(cls, cls.collection.find(*args, filter=filter, **kwargs), collection_cursor)
+        return WrappedCursor(cls, cls.collection.find(filter, *args, **kwargs), collection_cursor)
 
     @classmethod
     async def count_documents(cls, filter=None, **kwargs):
