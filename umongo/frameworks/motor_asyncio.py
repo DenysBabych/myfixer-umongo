@@ -16,13 +16,14 @@ from .tools import cook_find_filter
 
 class WrappedCursor(AsyncIOMotorCursor):
 
-    __slots__ = ('raw_cursor', 'document_cls')
+    __slots__ = ('raw_cursor', 'collection_cursor', 'document_cls')
 
-    def __init__(self, document_cls, cursor):
+    def __init__(self, document_cls, cursor, collection_cursor=False):
         # Such a cunning plan my lord !
         # We inherit from Cursor but don't call it __init__ because
         # we act as a proxy to the underlying raw_cursor
         WrappedCursor.raw_cursor.__set__(self, cursor)
+        WrappedCursor.collection_cursor.__set__(self, collection_cursor)
         WrappedCursor.document_cls.__set__(self, document_cls)
 
     def __getattr__(self, name):
@@ -32,28 +33,29 @@ class WrappedCursor(AsyncIOMotorCursor):
         return setattr(self.raw_cursor, name, value)
 
     def clone(self):
-        return WrappedCursor(self.document_cls, self.raw_cursor.clone())
+        return WrappedCursor(self.document_cls, self.raw_cursor.clone(), self.collection_cursor)
 
     def next_object(self):
         raw = self.raw_cursor.next_object()
-        return self.document_cls.build_from_mongo(raw, use_cls=True)
+        return self.document_cls.build_from_mongo(raw, use_cls=True) if not self.collection_cursor else raw
 
     def each(self, callback):
         def wrapped_callback(result, error):
-            if not error and result is not None:
+            if not error and result is not None and not self.collection_cursor:
                 result = self.document_cls.build_from_mongo(result, use_cls=True)
             return callback(result, error)
         return self.raw_cursor.each(wrapped_callback)
 
     def to_list(self, length=None):
-        raw_future = self.raw_cursor.to_list(length)
-        cooked_future = asyncio.Future()
-        builder = self.document_cls.build_from_mongo
+        raw_future = cooked_future = self.raw_cursor.to_list(length)
+        if not self.collection_cursor:
+            cooked_future = asyncio.Future()
+            builder = self.document_cls.build_from_mongo
 
-        def on_raw_done(fut):
-            cooked_future.set_result([builder(e, use_cls=True) for e in fut.result()])
+            def on_raw_done(fut):
+                cooked_future.set_result([builder(e, use_cls=True) for e in fut.result()])
 
-        raw_future.add_done_callback(on_raw_done)
+            raw_future.add_done_callback(on_raw_done)
         return cooked_future
 
     def count(self, **kwargs):
@@ -307,25 +309,25 @@ class MotorAsyncIODocument(DocumentImplementation):
                                            partial=self._data.get_modified_fields_by_mongo_name())
 
     @classmethod
-    async def find_one(cls, filter=None, *args, **kwargs):
+    async def find_one(cls, filter=None, *args, collection_cursor=False, **kwargs):
         """
         Find a single document in database.
         """
         filter = cook_find_filter(cls, filter)
         ret = await cls.collection.find_one(*args, filter=filter, **kwargs)
-        if ret is not None:
+        if not collection_cursor and ret is not None:
             ret = cls.build_from_mongo(ret, use_cls=True)
         return ret
 
     @classmethod
-    def find(cls, filter=None, *args, **kwargs):
+    def find(cls, filter=None, *args, collection_cursor=False, **kwargs):
         """
         Find a list document in database.
 
         Returns a cursor that provide Documents.
         """
         filter = cook_find_filter(cls, filter)
-        return WrappedCursor(cls, cls.collection.find(*args, filter=filter, **kwargs))
+        return WrappedCursor(cls, cls.collection.find(*args, filter=filter, **kwargs), collection_cursor)
 
     @classmethod
     async def count_documents(cls, filter=None, **kwargs):
