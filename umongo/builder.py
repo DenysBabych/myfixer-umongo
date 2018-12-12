@@ -246,7 +246,7 @@ class BaseBuilder:
         # visit the document's fields which weren't defined at this time
         opts.indexes = _collect_indexes(nmspc.get('Meta'), schema_fields, bases)
 
-        implementation = type(name, bases, nmspc)
+        implementation = schema._schema_model = type(name, bases, nmspc)
         self._templates_lookup[template] = implementation
         # Notify the parent & grand parents of the newborn !
         for base in bases:

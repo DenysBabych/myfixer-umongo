@@ -49,6 +49,10 @@ class BaseSchema(MaSchema):
         if check_unknown_fields:
             nmspc['_%s__check_unknown_fields' % name] = validates_schema(
                 pass_original=True)(schema_validator_check_unknown_fields)
+
+        if hasattr(self, '_schema_model'):
+            nmspc['_schema_model'] = self._schema_model
+
         # By default OO world returns `missing` fields as `None`,
         # disable this behavior here to let marshmallow deals with it
         if not mongo_world:
