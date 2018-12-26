@@ -252,7 +252,7 @@ class DocumentImplementation(BaseDataObject, Implementation, metaclass=MetaDocum
         return not self.is_created or self._data.is_modified()
 
     def required_validate(self):
-        self._data.required_validate()
+        self._data.required_validate(is_created=self.is_created)
 
     def items(self):
         return self._data.items()

@@ -215,11 +215,12 @@ class BaseDataProxy:
                 else:
                     self._data[mongo_name] = field.missing
 
-    def required_validate(self):
+    def required_validate(self, is_created=False):
         errors = {}
         for name, field in self.schema.fields.items():
-            value = self._data[field.attribute or name]
-            if field.required and value is missing:
+            field_name = field.attribute or name
+            value = self._data[field_name]
+            if (field.required and value is missing) and (not is_created or field_name in self._modified_data):
                 errors[name] = [_("Missing data for required field.")]
             elif hasattr(field, '_required_validate'):
                 try:
