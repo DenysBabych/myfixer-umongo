@@ -118,9 +118,13 @@ class EmbeddedDocumentImplementation(Implementation, BaseDataObject):
     def clear_modified(self):
         self._data.clear_modified()
 
-    def required_validate(self):
+    @property
+    def is_created(self):
         parent_instance = self.parent_instance
-        self._data.required_validate(is_created=parent_instance.is_created if parent_instance else False)
+        return parent_instance.is_created if parent_instance else False
+
+    def required_validate(self):
+        self._data.required_validate(is_created=self.is_created)
 
     @classmethod
     def build_from_mongo(cls, data, parent_instance=None, use_cls=True):
