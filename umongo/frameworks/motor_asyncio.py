@@ -454,8 +454,11 @@ class MotorAsyncIOReference(Reference):
         if not self._document or force_reload:
             if self.pk is None:
                 raise ReferenceError('Cannot retrieve a None Reference')
-            self._document = await self.document_cls.find_one(self.pk)
-            if not self._document:
+            if no_data:
+                result = await self.document_cls.count_documents({'_id': self.pk})
+            else:
+                result = self._document = await self.document_cls.find_one(self.pk)
+            if not result:
                 raise ValidationError(self.error_messages['not_found'].format(
                     document=self.document_cls.__name__))
         return self._document
