@@ -450,14 +450,14 @@ class MotorAsyncIOReference(Reference):
         super().__init__(*args, **kwargs)
         self._document = None
 
-    async def fetch(self, no_data=False, force_reload=False):
+    async def fetch(self, projection=None, no_data=False, force_reload=False):
         if not self._document or force_reload:
             if self.pk is None:
                 raise ReferenceError('Cannot retrieve a None Reference')
             if no_data:
                 result = await self.document_cls.count_documents({'_id': self.pk})
             else:
-                result = self._document = await self.document_cls.find_one(self.pk)
+                result = self._document = await self.document_cls.find_one(self.pk, projection=projection)
             if not result:
                 raise ValidationError(self.error_messages['not_found'].format(
                     document=self.document_cls.__name__))
