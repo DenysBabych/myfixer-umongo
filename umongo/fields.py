@@ -304,7 +304,7 @@ class ReferenceField(BaseField, ma_bonus_fields.Reference):
             if not value.is_created:
                 raise ValidationError(
                     _("Cannot reference a document that has not been created yet."))
-            value = value.pk
+            return self._deserialize_from_mongo(value)
         elif isinstance(value, self._document_implementation_cls):
             raise ValidationError(_("`{document}` reference expected.").format(
                 document=self.document_cls.__name__))
