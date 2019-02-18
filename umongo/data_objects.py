@@ -70,14 +70,15 @@ class List(BaseDataObject, list):
             return True
         if len(self) and isinstance(self[0], BaseDataObject):
             # Recursive handling needed
-            return any(obj.is_modified() for obj in self)
+            return any(obj.is_modified() for obj in self if obj is not None)
 
     def clear_modified(self):
         self._modified = False
         if len(self) and isinstance(self[0], BaseDataObject):
             # Recursive handling needed
             for obj in self:
-                obj.clear_modified()
+                if obj is not None:
+                    obj.clear_modified()
 
 
 # TODO: Dict is to much raw: you need to use `set_modified` by hand !
