@@ -403,7 +403,7 @@ async def _io_validate_data_proxy(schema, data_proxy, partial=None):
         if value is missing:
             continue
         try:
-            if field.io_validate_recursive:
+            if field.io_validate_recursive and not (value is None and field.allow_none):
                 await field.io_validate_recursive(field, value)
             if field.io_validate:
                 tasks.append(_run_validators(field.io_validate, field, value))

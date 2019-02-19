@@ -548,5 +548,5 @@ class EmbeddedField(BaseField, ma_fields.Nested):
         return ma_fields.Nested(nested_ma_schema, **kwargs)
 
     def _required_validate(self, value):
-        if value is not missing:
+        if value is not missing and not (value is None and self.allow_none):
             value.required_validate()
