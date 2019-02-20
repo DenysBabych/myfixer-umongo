@@ -330,6 +330,18 @@ class MotorAsyncIODocument(DocumentImplementation):
         return WrappedCursor(cls, cls.collection.find(filter, *args, **kwargs), collection_cursor)
 
     @classmethod
+    async def find_one_and_update(cls, filter, update, *args, collection_cursor=False, **kwargs):
+        """
+        Finds a single document and updates it, returning either the
+        original or the updated document.
+        """
+        filter = cook_find_filter(cls, filter)
+        ret = await cls.collection.find_one_and_update(filter, update, *args, **kwargs)
+        if not collection_cursor and ret is not None:
+            ret = cls.build_from_mongo(ret, use_cls=True)
+        return ret
+
+    @classmethod
     async def count_documents(cls, filter=None, **kwargs):
         """
         Count the number of documents in this collection.
