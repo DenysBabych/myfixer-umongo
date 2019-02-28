@@ -408,7 +408,7 @@ async def _io_validate_data_proxy(schema, data_proxy, partial=None):
     tasks_field_name = []
     for name, field in schema.fields.items():
         data_name = field.attribute or name
-        if partial and data_name not in partial:
+        if partial is not None and data_name not in partial:
             continue
 
         value = data_proxy._data[data_name]
@@ -453,7 +453,8 @@ async def _list_io_validate(field, value):
 
 
 async def _embedded_document_io_validate(field, value):
-    await _io_validate_data_proxy(value.schema, value._data, partial=value._data.get_modified_fields_by_mongo_name())
+    partial = value._data.get_modified_fields_by_mongo_name() if value.is_created else None
+    await _io_validate_data_proxy(value.schema, value._data, partial=partial)
 
 
 class MotorAsyncIOReference(Reference):
